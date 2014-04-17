@@ -25,6 +25,7 @@ class matt-puppet {
   }
 
   package { tmux: }
+  package { bash: }
   package {
     vim:
       name => $::osfamily ? {
@@ -59,11 +60,13 @@ class matt-puppet {
       group => $rootgroup,
       mode => '0755',
       subscribe => Vcsrepo['/home/matt/dotfiles'],
+      requires => Package['bash'],
   }
   file {
     '/home/matt/.tmux.conf':
       ensure => '/home/matt/dotfiles/tmux.conf',
       requires => Vcsrepo['/home/matt/dotfiles'],
+      requires => Package['tmux'],
   }
   file {
     '/home/matt/.vim':
