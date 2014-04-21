@@ -1,17 +1,4 @@
-class matt-puppet {
-  Package { ensure => installed, }
-  
-  $path_prefix = $osfamily ? {
-    FreeBSD => '/usr/local/',
-    default => '/',
-  }
-
-  $rootgroup = $osfamily ? {
-    'Solaris'          => 'wheel',
-    /(Darwin|.*BSD.*)/ => 'wheel',
-    default            => 'root',
-  }
-  
+class matt-puppet inherits matt-puppet::deps {
   user {
     'matt':
       name   => 'matt',
@@ -20,19 +7,10 @@ class matt-puppet {
       ensure => present,
       gid => 'matt',
       groups => $rootgroup,
-      shell => "${prefix}bin/bash"
-
+      shell => "${path_prefix}bin/bash",
+      require => Package['bash'],
   }
 
-  package { tmux: }
-  package { bash: }
-  package {
-    vim:
-      name => $::osfamily ? {
-        'FreeBSD' => 'vim-lite'
-          default => 'vim'
-      },
-  }
 
   vcsrepo {
     '/home/matt/dotfiles':
@@ -46,31 +24,24 @@ class matt-puppet {
   file {
     '/home/matt/.bashrc':
       ensure => $::osfamily ? {
-                   /(.*BSD.*)/ => '/home/matt/dotfiles/FreeBSD/home.bashrc.fbsd'
-                   default   => '/home/matt/dotfiles/home.bashrc'
+                   /(.*BSD.*)/ => '/home/matt/dotfiles/FreeBSD/home.bashrc.fbsd',
+                   default   => '/home/matt/dotfiles/home.bashrc',
                 },
-      requires => Vcsrepo['/home/matt/dotfiles'],
-      requires => Package['tmux'],
-  }
-  file {
-    'bash.bashrc':
-      path => "${path_prefix}etc/bash.bashrc",
-      source => '/home/matt/dotfiles/u.l.e.bash.bashrc',
-      owner => 'root',
-      group => $rootgroup,
-      mode => '0755',
-      subscribe => Vcsrepo['/home/matt/dotfiles'],
-      requires => Package['bash'],
+      require => [ Vcsrepo['/home/matt/dotfiles'],
+                    Package['bash'],
+                    Package['tmux'] ],
   }
   file {
     '/home/matt/.tmux.conf':
       ensure => '/home/matt/dotfiles/tmux.conf',
-      requires => Vcsrepo['/home/matt/dotfiles'],
-      requires => Package['tmux'],
+      require => [ Vcsrepo['/home/matt/dotfiles'], 
+                    Package['tmux'] ],
   }
   file {
     '/home/matt/.vim':
       ensure => '/home/matt/dotfiles/dotvim',
-      requires => Package['vim'],
+      require => Package['vim'],
   }
+
+  # Package['vim', 'bash', 'tmux'] -> Vcsrepo['/home/matt/dotfiles'] -> File['/home/matt/.tmux.conf', '/home/matt/.vim']
 }
